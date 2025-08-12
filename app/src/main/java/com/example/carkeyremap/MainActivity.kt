@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -419,8 +420,8 @@ fun KeyDetectionScreen() {
     var lastDetectedKey by remember { mutableStateOf<DetectedKey?>(null) }
     var serviceStatus by remember { mutableStateOf("检查中...") }
     
-    // 检查无障碍服务状态
-    LaunchedEffect(Unit) {
+    // 刷新服务状态的函数
+    val refreshServiceStatus = {
         serviceStatus = if (isAccessibilityServiceEnabled(context)) {
             if (KeyRemapAccessibilityService.instance != null) {
                 "服务运行中"
@@ -429,6 +430,25 @@ fun KeyDetectionScreen() {
             }
         } else {
             "服务未启用"
+        }
+    }
+    
+    // 检查无障碍服务状态
+    LaunchedEffect(Unit) {
+        refreshServiceStatus()
+    }
+    
+    // 智能自动刷新服务状态
+    LaunchedEffect(serviceStatus) {
+        while (true) {
+            kotlinx.coroutines.delay(
+                if (serviceStatus == "服务运行中") {
+                    30000 // 服务运行时每30秒检查一次
+                } else {
+                    5000  // 服务未运行时每5秒检查一次
+                }
+            )
+            refreshServiceStatus()
         }
     }
     
@@ -491,7 +511,8 @@ fun KeyDetectionScreen() {
             lastDetectedKey = lastDetectedKey,
             detectedKeys = detectedKeys,
             serviceStatus = serviceStatus,
-            context = context
+            context = context,
+            onRefreshServiceStatus = refreshServiceStatus
         )
     } else {
         PortraitKeyDetectionLayout(
@@ -504,7 +525,8 @@ fun KeyDetectionScreen() {
             lastDetectedKey = lastDetectedKey,
             detectedKeys = detectedKeys,
             serviceStatus = serviceStatus,
-            context = context
+            context = context,
+            onRefreshServiceStatus = refreshServiceStatus
         )
     }
 }
@@ -517,7 +539,8 @@ fun LandscapeKeyDetectionLayout(
     lastDetectedKey: DetectedKey?,
     detectedKeys: List<DetectedKey>,
     serviceStatus: String,
-    context: android.content.Context
+    context: android.content.Context,
+    onRefreshServiceStatus: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -537,7 +560,7 @@ fun LandscapeKeyDetectionLayout(
             )
             
             // 服务状态卡片
-            ServiceStatusCard(serviceStatus, context)
+            ServiceStatusCard(serviceStatus, context, onRefreshServiceStatus)
             
             // 控制按钮
             Row(
@@ -599,7 +622,8 @@ fun PortraitKeyDetectionLayout(
     lastDetectedKey: DetectedKey?,
     detectedKeys: List<DetectedKey>,
     serviceStatus: String,
-    context: android.content.Context
+    context: android.content.Context,
+    onRefreshServiceStatus: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -614,7 +638,7 @@ fun PortraitKeyDetectionLayout(
         )
         
         // 服务状态卡片
-        ServiceStatusCard(serviceStatus, context)
+        ServiceStatusCard(serviceStatus, context, onRefreshServiceStatus)
         
         // 控制按钮
         Row(
@@ -916,7 +940,7 @@ fun isAccessibilityServiceEnabled(context: android.content.Context): Boolean {
 }
 
 @Composable
-fun ServiceStatusCard(serviceStatus: String, context: android.content.Context) {
+fun ServiceStatusCard(serviceStatus: String, context: android.content.Context, onRefreshServiceStatus: () -> Unit) {
     val isEnabled = serviceStatus == "服务运行中"
     
     Card(
@@ -929,8 +953,7 @@ fun ServiceStatusCard(serviceStatus: String, context: android.content.Context) {
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -955,13 +978,35 @@ fun ServiceStatusCard(serviceStatus: String, context: android.content.Context) {
                     )
                 }
                 
-                if (!isEnabled) {
+                // 刷新按钮
+                IconButton(
+                    onClick = onRefreshServiceStatus
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "刷新状态",
+                        tint = if (isEnabled) 
+                            MaterialTheme.colorScheme.onPrimaryContainer 
+                        else 
+                            MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+            
+            // 操作按钮行
+            if (!isEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Button(
                         onClick = {
                             // 打开无障碍服务设置页面
                             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                             context.startActivity(intent)
                         },
+                        modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
                         )
@@ -969,9 +1014,7 @@ fun ServiceStatusCard(serviceStatus: String, context: android.content.Context) {
                         Text("启用服务", color = MaterialTheme.colorScheme.onError)
                     }
                 }
-            }
-            
-            if (!isEnabled) {
+                
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "请在无障碍设置中启用 'CarKey Remap' 服务来检测按键事件",
