@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">CarKey Remap</string>
+    <string name="accessibility_service_description">按键重映射服务，用于拦截和重新映射车机按键事件</string>
+    <string name="enable_accessibility_service">启用无障碍服务</string>
+    <string name="accessibility_service_enabled">无障碍服务已启用</string>
+    <string name="accessibility_service_disabled">无障碍服务未启用</string>
+    <string name="key_mapping_title">按键映射配置</string>
+    <string name="source_key">源按键</string>
+    <string name="target_action">目标动作</string>
+    <string name="add_mapping">添加映射</string>
+    <string name="save_mapping">保存映射</string>
+    <string name="delete_mapping">删除映射</string>
+    <string name="key_code_volume_up">音量加键</string>
+    <string name="key_code_volume_down">音量减键</string>
+    <string name="key_code_back">返回键</string>
+    <string name="key_code_home">主页键</string>
+    <string name="key_code_menu">菜单键</string>
+    <string name="action_type_key">按键事件</string>
+    <string name="action_type_click">屏幕点击</string>
+    <string name="action_type_gesture">手势</string>
+    <string name="click_position">点击位置</string>
+    <string name="x_coordinate">X坐标</string>
+    <string name="y_coordinate">Y坐标</string>
+</resources>
